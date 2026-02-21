@@ -26,6 +26,19 @@ body {
     repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,.012) 3px,rgba(255,255,255,.012) 6px);
 }
 
+/* ── LOADING ── */
+.loading {
+  display:flex; align-items:center; justify-content:center;
+  min-height:100svh; flex-direction:column; gap:16px;
+}
+.loading-spinner {
+  width:48px; height:48px; border:4px solid rgba(201,169,74,.2);
+  border-top-color:var(--gold); border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-txt { font-size:14px; color:rgba(240,230,200,.6); letter-spacing:1px; }
+
 /* ── SETUP ── */
 .setup {
   display:flex; align-items:center; justify-content:center;
@@ -60,6 +73,42 @@ body {
   box-shadow:0 4px 20px rgba(201,169,74,.25); transition:all .2s;
 }
 .btn-start:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(201,169,74,.35); }
+.btn-start:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+/* ── WAITING FOR PLAYER 2 ── */
+.wait-p2 {
+  display:flex; align-items:center; justify-content:center;
+  min-height:100svh; padding:20px;
+}
+.wait-p2-box {
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(201,169,74,.3);
+  border-radius:20px; padding:36px 28px;
+  max-width:360px; width:100%; text-align:center;
+  box-shadow:0 0 80px rgba(0,0,0,.6);
+}
+.wait-p2-title { font-size:22px; color:var(--gold); margin-bottom:8px; }
+.wait-p2-sub { font-size:13px; color:rgba(240,230,200,.55); margin-bottom:24px; }
+.share-url-big {
+  width:100%; padding:10px 12px; background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1); border-radius:8px;
+  color:rgba(240,230,200,.7); font-size:11px; outline:none;
+  margin-bottom:10px; font-family:Georgia,serif;
+}
+.b-copy-big {
+  width:100%; padding:12px; background:#2b6cb0; color:#fff;
+  border:none; border-radius:8px; font-size:14px; cursor:pointer;
+  font-family:Georgia,serif; font-weight:bold; margin-bottom:10px; transition:background .2s;
+}
+.b-copy-big.ok { background:#276749; }
+.b-wa-big {
+  display:block; width:100%; padding:12px;
+  background:#25d366; color:#fff; text-decoration:none;
+  border-radius:8px; text-align:center; font-weight:bold;
+  font-size:14px; font-family:Georgia,serif; letter-spacing:1px;
+}
+.pulse { animation:pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 
 /* ── GAME ── */
 .game {
@@ -180,46 +229,50 @@ body {
 .end-sub { font-size:13px; color:rgba(240,230,200,.55); margin-bottom:12px; }
 .turn-tip { text-align:center; font-size:11px; color:var(--gold); letter-spacing:1px; font-style:italic; padding:4px 0; }
 
-/* Share */
-.share-box {
-  padding:12px 14px; border-radius:10px;
-  background:rgba(0,0,0,.32); border:1px solid rgba(37,211,102,.28);
+/* Online indicator */
+.online-dot {
+  display:inline-block; width:7px; height:7px; border-radius:50%;
+  background:#25d366; margin-right:5px; vertical-align:middle;
+  box-shadow:0 0 6px #25d366;
 }
-.share-lbl { font-size:11px; color:rgba(240,230,200,.7); margin-bottom:8px; letter-spacing:.5px; }
-.share-row { display:flex; gap:6px; margin-bottom:8px; }
-.share-url {
-  flex:1; padding:8px 10px; background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.09); border-radius:6px;
-  color:rgba(240,230,200,.65); font-size:11px; outline:none;
-  overflow:hidden; white-space:nowrap;
+.offline-dot {
+  display:inline-block; width:7px; height:7px; border-radius:50%;
+  background:#fc8181; margin-right:5px; vertical-align:middle;
 }
-.b-copy {
-  padding:8px 12px; background:#2b6cb0; color:#fff;
-  border:none; border-radius:6px; font-size:12px; cursor:pointer;
-  font-family:Georgia,serif; font-weight:bold; white-space:nowrap; transition:background .2s;
-}
-.b-copy.ok { background:#276749; }
-.b-wa {
-  display:block; width:100%; padding:10px;
-  background:#25d366; color:#fff; text-decoration:none;
-  border-radius:7px; text-align:center; font-weight:bold;
-  font-size:14px; font-family:Georgia,serif; letter-spacing:1px;
-}
-
-hr.divider { border:none; border-top:1px solid rgba(255,255,255,.06); margin:2px 0; }
 </style>
 </head>
 <body>
 <div id="root"></div>
+
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 'use strict';
+
+// ─── Firebase Config ──────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCOXCCkQc7pPgBvffW057MN37ZJJiAJi1Y",
+  authDomain: "truco-saulo.firebaseapp.com",
+  databaseURL: "https://truco-saulo-default-rtdb.firebaseio.com",
+  projectId: "truco-saulo",
+  storageBucket: "truco-saulo.firebasestorage.app",
+  messagingSenderId: "847615285841",
+  appId: "1:847615285841:web:f2181886b1e5437c7b3670"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 // ─── Constants ────────────────────────────────────────────────
 const SUITS  = ['♠','♥','♦','♣'];
 const VALUES = ['4','5','6','7','Q','J','K','A','2','3'];
 const TVALS  = [1,3,6,9,12];
 const TLBL   = ['','Truco!','Seis!','Nove!','Doze!'];
-const MR     = {'♣':14,'♥':13,'♠':12,'♦':11}; // manilha suit rank
+const MR     = {'♣':14,'♥':13,'♠':12,'♦':11};
+
+// ─── State ────────────────────────────────────────────────────
+let GS = null, ME = null, SEL = null, ROOM = null, LISTENER = null;
+let OPPONENT_ONLINE = false;
 
 // ─── Helpers ──────────────────────────────────────────────────
 function manilhaOf(viraV) { return VALUES[(VALUES.indexOf(viraV)+1)%VALUES.length]; }
@@ -258,10 +311,10 @@ function handW(rounds) {
   if(w[2]>=2) return 2;
   if(n>=2){
     const a=rounds[0].w, b=rounds[1].w;
-    if(a===0&&b===0) return null;          // both draw → round 3
-    if(a===0&&b!==0) return b;             // draw + win
-    if(a!==0&&b===0) return a;             // win + draw
-    if(a!==0&&b!==0&&a!==b) return null;  // split → round 3
+    if(a===0&&b===0) return null;
+    if(a===0&&b!==0) return b;
+    if(a!==0&&b===0) return a;
+    if(a!==0&&b!==0&&a!==b) return null;
   }
   if(n===3){
     if(w[0]===3) return 0;
@@ -271,170 +324,263 @@ function handW(rounds) {
   return null;
 }
 
-function enc(s) { try{return btoa(unescape(encodeURIComponent(JSON.stringify(s))))}catch(e){return btoa(JSON.stringify(s))} }
-function dec(b) { try{return JSON.parse(decodeURIComponent(escape(atob(b))))}catch(e){return JSON.parse(atob(b))} }
-
-function makeUrl(gs,p) {
-  const base='https://sauloarradi.github.io/truco/';
-  return base+'#g='+enc(gs)+'&p='+p;
+function randId() {
+  return Math.random().toString(36).slice(2,8).toUpperCase();
 }
 
-// ─── State ────────────────────────────────────────────────────
-let GS=null, ME=null, SEL=null, LINK='', COPIED=false;
-
-function loadHash() {
-  const h=location.hash.slice(1); if(!h) return false;
-  try{
-    const p=new URLSearchParams(h);
-    const g=p.get('g'), pv=p.get('p');
-    if(g&&pv){ GS=dec(g); ME=+pv; return true; }
-  }catch(e){}
-  return false;
+// ─── Firebase ─────────────────────────────────────────────────
+function saveState(gs) {
+  return db.ref('rooms/'+ROOM+'/state').set(gs);
 }
 
-function commit(ng) {
-  GS=ng; SEL=null; COPIED=false;
-  const other=ME===1?2:1;
-  LINK=makeUrl(ng,other);
-  history.replaceState(null,'',makeUrl(ng,ME));
-  render();
+function listenState(callback) {
+  if(LISTENER) LISTENER.off();
+  LISTENER = db.ref('rooms/'+ROOM+'/state');
+  LISTENER.on('value', snap => {
+    const val = snap.val();
+    if(val) callback(val);
+  });
+}
+
+function setPresence(player) {
+  const ref = db.ref('rooms/'+ROOM+'/online/p'+player);
+  ref.set(true);
+  ref.onDisconnect().set(false);
+}
+
+function listenPresence() {
+  const opp = ME===1 ? 2 : 1;
+  db.ref('rooms/'+ROOM+'/online/p'+opp).on('value', snap => {
+    OPPONENT_ONLINE = snap.val() === true;
+    render();
+  });
+}
+
+// ─── URL Room ─────────────────────────────────────────────────
+function getRoomFromUrl() {
+  const p = new URLSearchParams(location.search);
+  return { room: p.get('room'), player: p.get('p') ? +p.get('p') : null };
+}
+
+function setRoomUrl(room, player) {
+  const url = location.origin + location.pathname + '?room=' + room + '&p=' + player;
+  history.replaceState(null, '', url);
+  return url;
+}
+
+function getInviteUrl(room) {
+  return location.origin + location.pathname + '?room=' + room + '&p=2';
 }
 
 // ─── Actions ──────────────────────────────────────────────────
-function startGame(n1,n2) {
-  const seed=(Math.random()*999998+1)|0;
-  const {p1,p2,vira}=deal(seed);
-  const gs={
-    names:[n1||'Jogador 1', n2||'Jogador 2'],
-    scores:[0,0], vira, p1Cards:p1, p2Cards:p2,
+async function startGame(n1, n2) {
+  const btnStart = document.getElementById('btnStart');
+  if(btnStart) btnStart.disabled = true;
+
+  ROOM = randId();
+  ME = 1;
+  setRoomUrl(ROOM, 1);
+
+  const seed = (Math.random()*999998+1)|0;
+  const {p1,p2,vira} = deal(seed);
+  const gs = {
+    names: [n1||'Jogador 1', n2||'Jogador 2'],
+    scores: [0,0], vira, p1Cards:p1, p2Cards:p2,
     rounds:[], cur:{p1:null,p2:null},
     turn:1, firstPlay:1,
     truco:{st:'none',by:null,vi:0,tb:1},
     phase:'play', hw:null, seed,
+    p2joined: false,
   };
-  GS=gs; ME=1; SEL=null; COPIED=false;
-  LINK=makeUrl(gs,2);
-  history.replaceState(null,'',makeUrl(gs,1));
+
+  await saveState(gs);
+  GS = gs;
+  SEL = null;
+
+  setPresence(1);
+  listenState(onStateUpdate);
+  listenPresence();
   render();
 }
 
-function playCard(idx) {
-  if(!GS||GS.phase!=='play'||GS.turn!==ME) return;
-  const key=ME===1?'p1Cards':'p2Cards';
-  const card=GS[key][idx]; if(!card) return;
+function onStateUpdate(gs) {
+  GS = gs;
+  SEL = null;
+  render();
+}
 
-  const ng=JSON.parse(JSON.stringify(GS));
-  ng[key][idx]=null;
-  ng.cur[ME===1?'p1':'p2']=card;
+async function joinGame(room) {
+  ROOM = room;
+  ME = 2;
+  setRoomUrl(room, 2);
+
+  // Mark p2 as joined
+  const snap = await db.ref('rooms/'+room+'/state').get();
+  if(!snap.exists()) {
+    document.getElementById('root').innerHTML = `
+      <div class="loading">
+        <div style="font-size:48px">😕</div>
+        <div class="loading-txt">Partida não encontrada.<br>Peça um novo convite.</div>
+      </div>`;
+    return;
+  }
+  GS = snap.val();
+  GS.p2joined = true;
+  await saveState(GS);
+
+  setPresence(2);
+  listenState(onStateUpdate);
+  listenPresence();
+  render();
+}
+
+async function commit(ng) {
+  GS = ng;
+  SEL = null;
+  await saveState(ng);
+  render();
+}
+
+async function playCard(idx) {
+  if(!GS||GS.phase!=='play'||GS.turn!==ME) return;
+  const key = ME===1?'p1Cards':'p2Cards';
+  const card = GS[key][idx]; if(!card) return;
+
+  const ng = JSON.parse(JSON.stringify(GS));
+  ng[key][idx] = null;
+  ng.cur[ME===1?'p1':'p2'] = card;
 
   if(ng.cur.p1&&ng.cur.p2){
-    const mn=manilhaOf(ng.vira.v);
-    const w=roundW(ng.cur.p1,ng.cur.p2,mn);
+    const mn = manilhaOf(ng.vira.v);
+    const w = roundW(ng.cur.p1,ng.cur.p2,mn);
     ng.rounds.push({p1:ng.cur.p1,p2:ng.cur.p2,w});
-    ng.cur={p1:null,p2:null};
-    const hw=handW(ng.rounds);
+    ng.cur = {p1:null,p2:null};
+    const hw = handW(ng.rounds);
     if(hw!==null){
-      ng.phase='handEnd'; ng.hw=hw;
-      const pts=TVALS[ng.truco.vi];
+      ng.phase = 'handEnd'; ng.hw = hw;
+      const pts = TVALS[ng.truco.vi];
       if(hw===0){ng.scores[0]+=1;ng.scores[1]+=1;}
-      else ng.scores[hw-1]+=pts;
-      if(ng.scores[0]>=12||ng.scores[1]>=12) ng.phase='gameOver';
+      else ng.scores[hw-1] += pts;
+      if(ng.scores[0]>=12||ng.scores[1]>=12) ng.phase = 'gameOver';
     } else {
-      const lw=ng.rounds[ng.rounds.length-1].w;
-      ng.turn=lw===0?ng.firstPlay:lw;
+      const lw = ng.rounds[ng.rounds.length-1].w;
+      ng.turn = lw===0?ng.firstPlay:lw;
     }
   } else {
-    ng.turn=ME===1?2:1;
+    ng.turn = ME===1?2:1;
   }
-  commit(ng);
+  await commit(ng);
 }
 
-function callTruco() {
+async function callTruco() {
   if(!GS||GS.phase!=='play') return;
-  const nvi=GS.truco.st==='none'?1:GS.truco.vi+1;
+  const nvi = GS.truco.st==='none'?1:GS.truco.vi+1;
   if(nvi>=TVALS.length) return;
-  const ng=JSON.parse(JSON.stringify(GS));
-  ng.truco={st:'pending',by:ME,vi:nvi,tb:GS.turn};
-  ng.phase='trucoAsk';
-  commit(ng);
+  const ng = JSON.parse(JSON.stringify(GS));
+  ng.truco = {st:'pending',by:ME,vi:nvi,tb:GS.turn};
+  ng.phase = 'trucoAsk';
+  await commit(ng);
 }
 
-function respondTruco(r) {
+async function respondTruco(r) {
   if(!GS||GS.phase!=='trucoAsk'||GS.truco.by===ME) return;
-  const ng=JSON.parse(JSON.stringify(GS));
+  const ng = JSON.parse(JSON.stringify(GS));
   if(r==='acc'){
-    ng.truco.st='accepted'; ng.phase='play'; ng.turn=ng.truco.tb;
+    ng.truco.st = 'accepted'; ng.phase = 'play'; ng.turn = ng.truco.tb;
   } else if(r==='ref'){
-    const pts=TVALS[ng.truco.vi-1]||1;
-    ng.scores[ng.truco.by-1]+=pts;
-    ng.hw=ng.truco.by;
-    ng.phase=ng.scores[0]>=12||ng.scores[1]>=12?'gameOver':'handEnd';
+    const pts = TVALS[ng.truco.vi-1]||1;
+    ng.scores[ng.truco.by-1] += pts;
+    ng.hw = ng.truco.by;
+    ng.phase = ng.scores[0]>=12||ng.scores[1]>=12?'gameOver':'handEnd';
   } else if(r==='raise'){
-    const nvi=ng.truco.vi+1;
-    if(nvi<TVALS.length) ng.truco={st:'pending',by:ME,vi:nvi,tb:ng.truco.tb};
+    const nvi = ng.truco.vi+1;
+    if(nvi<TVALS.length) ng.truco = {st:'pending',by:ME,vi:nvi,tb:ng.truco.tb};
   }
-  commit(ng);
+  await commit(ng);
 }
 
-function nextHand() {
+async function nextHand() {
   if(!GS) return;
-  // Only the "dealer" (alternates each hand) can start — winner of previous hand starts next
-  const seed=(Math.random()*999998+1)|0;
-  const {p1,p2,vira}=deal(seed);
-  const nfp=GS.firstPlay===1?2:1;
-  const ng={
+  const seed = (Math.random()*999998+1)|0;
+  const {p1,p2,vira} = deal(seed);
+  const nfp = GS.firstPlay===1?2:1;
+  const ng = {
     ...GS, vira, p1Cards:p1, p2Cards:p2,
     rounds:[], cur:{p1:null,p2:null},
     turn:nfp, firstPlay:nfp,
     truco:{st:'none',by:null,vi:0,tb:nfp},
     phase:'play', hw:null, seed,
   };
-  commit(ng);
+  await commit(ng);
 }
 
-function restartGame() {
-  GS=null; ME=null; SEL=null; LINK=''; COPIED=false;
-  history.replaceState(null,'',location.href.split('#')[0]);
+async function restartGame() {
+  await db.ref('rooms/'+ROOM).remove();
+  GS = null; ME = null; SEL = null; ROOM = null;
+  history.replaceState(null,'',location.origin+location.pathname);
   render();
-}
-
-function copyLink() {
-  const doCopy=()=>{ COPIED=true; render(); setTimeout(()=>{COPIED=false;render();},2500); };
-  navigator.clipboard.writeText(LINK).then(doCopy).catch(()=>{
-    const ta=document.createElement('textarea');
-    ta.value=LINK; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta); doCopy();
-  });
 }
 
 // ─── Card HTML ────────────────────────────────────────────────
 function cardH(card, sel=false, selectable=false, empty=false) {
   if(empty) return `<div class="card empty-slot"></div>`;
-  if(!card) return `<div class="card face-down"></div>`; // hidden back
-  const red=card.s==='♥'||card.s==='♦';
-  const col=red?'rd':'bk';
-  let cls='card face-up';
-  if(sel) cls+=' sel';
-  if(selectable) cls+=' selectable';
+  if(!card) return `<div class="card face-down"></div>`;
+  const red = card.s==='♥'||card.s==='♦';
+  const col = red?'rd':'bk';
+  let cls = 'card face-up';
+  if(sel) cls += ' sel';
+  if(selectable) cls += ' selectable';
   return `<div class="${cls}"><div class="cv ${col}">${card.v}</div><div class="cs ${col}">${card.s}</div></div>`;
 }
 
 // ─── Render ───────────────────────────────────────────────────
 function render() {
-  document.getElementById('root').innerHTML = GS ? renderGame() : renderSetup();
+  const root = document.getElementById('root');
+  if(!GS && !ROOM) { root.innerHTML = renderSetup(); attachEvents(); return; }
+  if(!GS) { root.innerHTML = renderLoading(); return; }
+
+  // Player 1 waiting for player 2 to join
+  if(ME===1 && !GS.p2joined) {
+    root.innerHTML = renderWaitP2();
+    attachEvents();
+    return;
+  }
+
+  root.innerHTML = renderGame();
   attachEvents();
+}
+
+function renderLoading() {
+  return `<div class="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-txt">Conectando à partida...</div>
+  </div>`;
 }
 
 function renderSetup() {
   return `<div class="setup"><div class="setup-box">
     <span class="setup-icon">🃏</span>
     <div class="setup-h1">Truco!</div>
-    <div class="setup-sub">Jogue via WhatsApp · 2 jogadores</div>
+    <div class="setup-sub">Multiplayer em tempo real · 2 jogadores</div>
     <label class="lbl">Seu nome (Jogador 1)</label>
     <input class="inp" id="in1" placeholder="Ex: João" autocomplete="off">
     <label class="lbl">Nome do amigo (Jogador 2)</label>
     <input class="inp" id="in2" placeholder="Ex: Maria" autocomplete="off">
     <button class="btn-start" id="btnStart">Criar Partida ↗</button>
+  </div></div>`;
+}
+
+function renderWaitP2() {
+  const inviteUrl = getInviteUrl(ROOM);
+  const waMsg = encodeURIComponent(`Vamos jogar Truco! 🃏 Clique para entrar na partida:\n${inviteUrl}`);
+  return `<div class="wait-p2"><div class="wait-p2-box">
+    <div style="font-size:48px;margin-bottom:12px">⏳</div>
+    <div class="wait-p2-title">Aguardando ${GS.names[1]}...</div>
+    <div class="wait-p2-sub">Compartilhe o link abaixo para seu amigo entrar na partida. A tela atualiza automaticamente quando ele entrar!</div>
+    <input class="share-url-big" type="text" readonly value="${inviteUrl}" id="shareUrlBig">
+    <button class="b-copy-big" id="btnCopyBig">📋 Copiar link</button>
+    <a class="b-wa-big" href="https://wa.me/?text=${waMsg}" target="_blank" rel="noopener">📱 Enviar no WhatsApp</a>
+    <div style="margin-top:20px;font-size:12px;color:rgba(240,230,200,.35)" class="pulse">● Aguardando conexão...</div>
   </div></div>`;
 }
 
@@ -449,13 +595,17 @@ function renderGame() {
   const tval=TVALS[gs.truco.vi];
   const pts=tval===1?'1 ponto':`${tval} pontos`;
 
+  const onlineDot = OPPONENT_ONLINE
+    ? `<span class="online-dot"></span>`
+    : `<span class="offline-dot"></span>`;
+
   let h=`<div class="game">`;
 
   // Header
   h+=`<div class="hdr">
     <div><div class="hdr-title">🃏 TRUCO</div><div class="hdr-hand">Mão vale ${pts}</div></div>
     <div><div class="score-n">${myScore} <span style="opacity:.35">×</span> ${oppScore}</div>
-    <div class="score-lbl">${myName} &nbsp;×&nbsp; ${oppName}</div></div>
+    <div class="score-lbl">${myName} &nbsp;×&nbsp; ${onlineDot}${oppName}</div></div>
   </div>`;
 
   // Vira
@@ -466,7 +616,7 @@ function renderGame() {
 
   // Opponent cards
   h+=`<div class="panel">
-    <div class="panel-lbl">${oppName}</div>
+    <div class="panel-lbl">${onlineDot}${oppName}</div>
     <div class="cards-row">
       ${oppCards.map(c=>c?cardH(null):cardH(null,false,false,true)).join('')}
     </div>
@@ -479,9 +629,9 @@ function renderGame() {
     gs.rounds.forEach((r,i)=>{
       const mc=me===1?r.p1:r.p2, oc=me===1?r.p2:r.p1;
       let wlbl='';
-      if(r.w===0)     wlbl=`<span class="drw">— Empate</span>`;
+      if(r.w===0)      wlbl=`<span class="drw">— Empate</span>`;
       else if(r.w===me) wlbl=`<span class="won">✓ Você</span>`;
-      else             wlbl=`<span class="lost">✓ ${oppName}</span>`;
+      else              wlbl=`<span class="lost">✓ ${oppName}</span>`;
       h+=`<div class="round-row">
         <span class="rlbl">Rod. ${i+1}</span>
         ${cardH(mc)}<span class="vs">vs</span>${cardH(oc)}
@@ -517,9 +667,7 @@ function renderGame() {
 
   if(gs.phase==='play'){
     if(itsMeTurn){
-      h+=`<div class="turn-indicator" style="text-align:center;font-size:11px;color:var(--gold);letter-spacing:1px;font-style:italic;padding:2px 0">
-        ✦ Sua vez — toque em uma carta para selecionar
-      </div>`;
+      h+=`<div class="turn-tip">✦ Sua vez — toque em uma carta para selecionar</div>`;
       const canT=gs.truco.vi<4&&(gs.truco.st==='none'||(gs.truco.st==='accepted'&&gs.truco.vi<4));
       const tlbl=gs.truco.st==='none'?'Truco!':TLBL[gs.truco.vi+1]||'Doze!';
       h+=`<div class="btn-row">
@@ -530,7 +678,7 @@ function renderGame() {
         ${canT?`<button class="btn b-truco" id="btnTruco">${tlbl}</button>`:''}
       </div>`;
     } else {
-      h+=`<div class="wait-box">⏳ Aguardando <strong>${oppName}</strong> jogar...</div>`;
+      h+=`<div class="wait-box pulse">⏳ Aguardando <strong>${oppName}</strong> jogar...</div>`;
     }
   }
 
@@ -538,7 +686,7 @@ function renderGame() {
     h+=`<div class="truco-wrap">`;
     if(gs.truco.by===me){
       h+=`<div class="truco-h">${TLBL[gs.truco.vi]}</div>
-          <div class="wait-box" style="background:transparent;border:none">Aguardando <strong>${oppName}</strong> responder...</div>`;
+          <div class="wait-box pulse" style="background:transparent;border:none">Aguardando <strong>${oppName}</strong> responder...</div>`;
     } else {
       h+=`<div class="truco-h">${oppName} pediu ${TLBL[gs.truco.vi]}</div>
           <div class="btn-row" style="flex-wrap:wrap;gap:6px">
@@ -552,13 +700,18 @@ function renderGame() {
 
   if(gs.phase==='handEnd'){
     let title='';
-    if(gs.hw===0)    title=`🤝 Empate! (+1 cada)`;
+    if(gs.hw===0)     title=`🤝 Empate! (+1 cada)`;
     else if(gs.hw===me) title=`✓ Você venceu a mão! (+${TVALS[gs.truco.vi]})`;
-    else                title=`${oppName} venceu a mão (+${TVALS[gs.truco.vi]})`;
+    else               title=`${oppName} venceu a mão (+${TVALS[gs.truco.vi]})`;
+    // Only the winner (or p1 on draw) starts next hand
+    const canNext = gs.hw===0 ? me===gs.firstPlay : gs.hw===me;
     h+=`<div class="end-wrap">
       <div class="end-h">${title}</div>
       <div class="end-sub">Placar: ${myScore} × ${oppScore}</div>
-      <button class="btn b-next" id="btnNext">Próxima mão →</button>
+      ${canNext
+        ? `<button class="btn b-next" id="btnNext">Próxima mão →</button>`
+        : `<div class="wait-box pulse" style="margin-top:10px">⏳ Aguardando ${oppName} iniciar próxima mão...</div>`
+      }
     </div>`;
   }
 
@@ -573,49 +726,29 @@ function renderGame() {
   }
 
   h+=`</div>`; // actions
-
-  // Share section
-  if(LINK){
-    const needShare =
-      (gs.phase==='play' && !itsMeTurn) ||
-      (gs.phase==='trucoAsk' && gs.truco.by===me) ||
-      gs.phase==='handEnd' ||
-      (gs.phase==='play' && gs.rounds.length===0 && !gs.cur.p1 && !gs.cur.p2 && me===1 && gs.truco.st==='none');
-
-    if(needShare){
-      let lbl=`📱 Envie para <strong>${oppName}</strong> jogar:`;
-      if(gs.phase==='handEnd') lbl=`📱 Envie para <strong>${oppName}</strong> ver o resultado:`;
-      if(gs.rounds.length===0&&me===1) lbl=`📱 Convide <strong>${oppName}</strong> para entrar na partida:`;
-
-      const waMsg=encodeURIComponent(`${me===1&&gs.rounds.length===0?'Vamos jogar Truco! 🃏 Clique para entrar na partida':'Sua vez no Truco! 🃏'}
-${LINK}`);
-
-      h+=`<div class="share-box">
-        <div class="share-lbl">${lbl}</div>
-        <div class="share-row">
-          <input class="share-url" type="text" readonly value="${LINK}" id="shareUrl">
-          <button class="b-copy ${COPIED?'ok':''}" id="btnCopy">${COPIED?'✓ Copiado!':'Copiar'}</button>
-        </div>
-        <a class="b-wa" href="https://wa.me/?text=${waMsg}" target="_blank" rel="noopener">
-          📱 Enviar no WhatsApp
-        </a>
-      </div>`;
-    }
-  }
-
   h+=`</div>`; // game
   return h;
 }
 
 // ─── Events ───────────────────────────────────────────────────
 function attachEvents() {
-  const q=id=>document.getElementById(id);
-  const on=(id,fn)=>{ const el=q(id); if(el) el.addEventListener('click',fn); };
+  const on=(id,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',fn); };
 
-  if(!GS){
-    on('btnStart',()=>{ startGame(q('in1').value.trim(), q('in2').value.trim()); });
+  if(!GS && !ROOM){
+    on('btnStart',()=>{ startGame(document.getElementById('in1').value.trim(), document.getElementById('in2').value.trim()); });
     ['in1','in2'].forEach(id=>{
-      const el=q(id); if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') q('btnStart').click(); });
+      const el=document.getElementById(id);
+      if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('btnStart').click(); });
+    });
+    return;
+  }
+
+  if(ME===1 && GS && !GS.p2joined){
+    on('btnCopyBig',()=>{
+      const url = getInviteUrl(ROOM);
+      navigator.clipboard.writeText(url).catch(()=>{});
+      const btn = document.getElementById('btnCopyBig');
+      if(btn){ btn.textContent='✓ Copiado!'; btn.classList.add('ok'); setTimeout(()=>{ btn.textContent='📋 Copiar link'; btn.classList.remove('ok'); },2500); }
     });
     return;
   }
@@ -623,26 +756,51 @@ function attachEvents() {
   // Card selection
   document.querySelectorAll('[data-ci]').forEach(el=>{
     el.addEventListener('click',()=>{
-      if(GS.phase!=='play'||GS.turn!==ME) return;
+      if(!GS||GS.phase!=='play'||GS.turn!==ME) return;
       const i=+el.getAttribute('data-ci');
       SEL=SEL===i?null:i; render();
     });
   });
 
-  on('btnPlay', ()=>{ if(SEL!==null) playCard(SEL); });
-  on('btnTruco', callTruco);
-  on('btnAcc',   ()=>respondTruco('acc'));
-  on('btnRef',   ()=>respondTruco('ref'));
-  on('btnRaise', ()=>respondTruco('raise'));
-  on('btnNext',  nextHand);
+  on('btnPlay',    ()=>{ if(SEL!==null) playCard(SEL); });
+  on('btnTruco',   callTruco);
+  on('btnAcc',     ()=>respondTruco('acc'));
+  on('btnRef',     ()=>respondTruco('ref'));
+  on('btnRaise',   ()=>respondTruco('raise'));
+  on('btnNext',    nextHand);
   on('btnRestart', restartGame);
-  on('btnCopy',  copyLink);
 }
 
 // ─── Boot ─────────────────────────────────────────────────────
-loadHash();
-render();
-window.addEventListener('hashchange',()=>{ if(loadHash()){SEL=null;LINK='';render();} });
+(async function boot() {
+  const {room, player} = getRoomFromUrl();
+
+  if(room && player===2){
+    // Someone joining via invite link
+    ROOM = room;
+    ME = 2;
+    document.getElementById('root').innerHTML = renderLoading();
+    await joinGame(room);
+  } else if(room && player===1){
+    // Player 1 reopening their own tab
+    ROOM = room;
+    ME = 1;
+    document.getElementById('root').innerHTML = renderLoading();
+    const snap = await db.ref('rooms/'+room+'/state').get();
+    if(snap.exists()){
+      GS = snap.val();
+      setPresence(1);
+      listenState(onStateUpdate);
+      listenPresence();
+      render();
+    } else {
+      history.replaceState(null,'',location.origin+location.pathname);
+      render();
+    }
+  } else {
+    render();
+  }
+})();
 </script>
 </body>
 </html>
